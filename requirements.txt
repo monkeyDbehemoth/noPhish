@@ -1,0 +1,7 @@
+aiosmtpd
+beautifulsoup4
+scikit-learn
+joblib
+rich
+requests
+

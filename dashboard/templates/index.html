@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - noPhish{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-speedometer2"></i> Dashboard Overview</h2>
+    <span class="text-muted">Real-time phishing detection monitoring</span>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card total p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">Total Emails</h6>
+                    <h2 class="mb-0">{{ stats.total }}</h2>
+                </div>
+                <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card phishing p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">Phishing Detected</h6>
+                    <h2 class="mb-0">{{ stats.phishing }}</h2>
+                </div>
+                <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card clean p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">Clean Emails</h6>
+                    <h2 class="mb-0">{{ stats.clean }}</h2>
+                </div>
+                <i class="bi bi-check-circle-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card table-card">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Recent Phishing Alerts</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_phishing %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>Sender</th>
+                                <th>Subject</th>
+                                <th>Score</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for email in recent_phishing %}
+                            <tr>
+                                <td>{{ email.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ email.sender[:50] }}...</td>
+                                <td>{{ email.subject[:50] }}...</td>
+                                <td><span class="badge bg-danger">{{ email.total_score }}/10</span></td>
+                                <td>
+                                    <a href="{{ url_for('email_detail', email_id=email.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
+                    <p class="mt-3">No phishing emails detected yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card table-card">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Detection Rate</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="display-4">{{ stats.phishing_rate }}%</div>
+                <p class="text-muted">Phishing detection rate</p>
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar bg-danger" style="width: {{ stats.phishing_rate }}%"></div>
+                    <div class="progress-bar bg-success" style="width: {{ 100 - stats.phishing_rate }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-2">
+                    <span><span class="badge bg-danger"></span> Phishing</span>
+                    <span><span class="badge bg-success"></span> Clean</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card table-card">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('emails', filter='phishing') }}" class="btn btn-outline-danger">
+                        <i class="bi bi-exclamation-triangle"></i> View Phishing Emails
+                    </a>
+                    <a href="{{ url_for('emails') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-envelope"></i> View All Emails
+                    </a>
+                    <a href="{{ url_for('stats') }}" class="btn btn-outline-success">
+                        <i class="bi bi-graph-up"></i> View Statistics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

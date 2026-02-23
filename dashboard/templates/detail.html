@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Email Details - noPhish{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-envelope-open"></i> Email Details</h2>
+    <a href="{{ url_for('emails') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Emails
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card table-card mb-4">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Email Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 150px;">Status</th>
+                        <td>
+                            {% if email.is_phishing %}
+                            <span class="badge badge-phishing">Phishing Detected</span>
+                            {% else %}
+                            <span class="badge badge-clean">Clean</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Timestamp</th>
+                        <td>{{ email.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Sender</th>
+                        <td>{{ email.sender }}</td>
+                    </tr>
+                    <tr>
+                        <th>Subject</th>
+                        <td>{{ email.subject }}</td>
+                    </tr>
+                    <tr>
+                        <th>Threat Score</th>
+                        <td>
+                            <span class="badge {{ 'bg-danger' if email.is_phishing else 'bg-secondary' }} fs-6">
+                                {{ email.total_score }}/10
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card table-card">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> Email Body</h5>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; word-wrap: break-word; max-height: 300px; overflow-y: auto;">{{ email.email_body[:2000] }}{{ '...' if email.email_body|length > 2000 else '' }}</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card table-card mb-4">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-shield"></i> Detection Scores</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>URL Analysis</span>
+                        <span class="badge bg-primary">{{ email.url_score }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-primary" style="width: {{ email.url_score * 10 }}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>HTML Analysis</span>
+                        <span class="badge bg-info">{{ email.html_score }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" style="width: {{ email.html_score * 10 }}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>ML Analysis</span>
+                        <span class="badge bg-warning">{{ email.ml_score }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning" style="width: {{ email.ml_score * 10 }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card table-card mb-4">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Detection Reasons</h5>
+            </div>
+            <div class="card-body">
+                {% if email.url_reasons %}
+                <h6 class="text-primary">URL Layer</h6>
+                <ul class="small">
+                    {% for reason in email.url_reasons %}
+                    <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                {% if email.html_reasons %}
+                <h6 class="text-info">HTML Layer</h6>
+                <ul class="small">
+                    {% for reason in email.html_reasons %}
+                    <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                {% if email.ml_reasons %}
+                <h6 class="text-warning">ML Layer</h6>
+                <ul class="small">
+                    {% for reason in email.ml_reasons %}
+                    <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                {% if not email.url_reasons and not email.html_reasons and not email.ml_reasons %}
+                <p class="text-muted small">No detection reasons</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card table-card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('delete_email', email_id=email.id) }}">
+                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Delete this email log?')">
+                        <i class="bi bi-trash"></i> Delete Log
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
