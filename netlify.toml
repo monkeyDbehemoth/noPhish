@@ -1,5 +1,13 @@
 [build]
+  command = ""
   publish = "dashboard-static"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
+
+[context.production.environment]
+  EMAILJS_SERVICE_ID = "service_80fn7ge"
+  EMAILJS_TEMPLATE_ID = "template_k3z097y"
+  EMAILJS_PUBLIC_KEY = "iSq75hb6y30zhVEHR"
+  ALERT_EMAIL = "shahshubhangam@gmail.com"
