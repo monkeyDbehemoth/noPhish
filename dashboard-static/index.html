@@ -8,26 +8,71 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background: #f8f9fa; }
-        .sidebar { min-height: 100vh; background: #1a1a2e; }
-        .sidebar a { color: #fff; text-decoration: none; padding: 12px 20px; display: block; border-radius: 0; }
-        .sidebar a:hover, .sidebar a.active { background: #16213e; }
-        .stat-card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .stat-card.phishing { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
-        .stat-card.clean { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
-        .stat-card.total { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; }
-        .table-card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .badge-phishing { background: #dc3545; }
-        .badge-clean { background: #28a745; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        body { background: #0a0a0a; color: #fff; }
+        .sidebar { min-height: 100vh; background: #111; border-right: 1px solid #333; }
+        .sidebar a { color: #888; text-decoration: none; padding: 12px 20px; display: block; border-radius: 0; }
+        .sidebar a:hover, .sidebar a.active { background: #1a1a1a; color: #00ff88; }
+        .stat-card { border: none; border-radius: 10px; background: #111; border: 1px solid #333; }
+        .stat-card.phishing { border-color: #ff4444; }
+        .stat-card.clean { border-color: #00ff88; }
+        .stat-card.total { border-color: #4488ff; }
+        .table-card { border: none; border-radius: 10px; background: #111; border: 1px solid #333; }
+        .badge-phishing { background: #ff4444; }
+        .badge-clean { background: #00ff88; color: #000; }
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: scan 2s linear infinite;
+            display: none;
+        }
+        .scanning .scanner-line { display: block; }
+        .live-indicator {
+            width: 10px;
+            height: 10px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+            display: inline-block;
+        }
+        .activity-item {
+            border-left: 2px solid #333;
+            padding-left: 15px;
+            margin-left: 10px;
+            position: relative;
+        }
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            left: -5px;
+            top: 0;
+            width: 8px;
+            height: 8px;
+            background: #333;
+            border-radius: 50%;
+        }
+        .activity-item.phishing::before { background: #ff4444; }
+        .activity-item.clean::before { background: #00ff88; }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-2 sidebar p-0">
-                <div class="p-3 text-white border-bottom border-secondary">
-                    <h5><i class="bi bi-shield-exclamation"></i> noPhish</h5>
-                    <small>Phishing Detection</small>
+                <div class="p-3 border-bottom border-secondary">
+                    <h5><i class="bi bi-shield-exclamation" style="color: #00ff88;"></i> noPhish</h5>
+                    <small style="color: #666;">Phishing Detection</small>
                 </div>
                 <nav>
                     <a href="#" onclick="showPage('dashboard')" class="active" id="nav-dashboard">
@@ -36,8 +81,8 @@
                     <a href="#" onclick="showPage('emails')" id="nav-emails">
                         <i class="bi bi-envelope"></i> All Emails
                     </a>
-                    <a href="#" onclick="showPage('stats')" id="nav-stats">
-                        <i class="bi bi-graph-up"></i> Statistics
+                    <a href="#" onclick="showPage('live')" id="nav-live">
+                        <i class="bi bi-activity"></i> Live Monitor
                     </a>
                 </nav>
             </div>
@@ -48,10 +93,48 @@
 
     <script>
         let emails = JSON.parse(localStorage.getItem('nophish_emails') || '[]');
+        let activityLog = JSON.parse(localStorage.getItem('nophish_activity') || '[]');
 
         function saveEmails() {
             localStorage.setItem('nophish_emails', JSON.stringify(emails));
             updateDashboard();
+        }
+
+        function addActivity(type, sender, subject, score) {
+            const activity = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                type: type,
+                sender: sender,
+                subject: subject,
+                score: score
+            };
+            activityLog.unshift(activity);
+            activityLog = activityLog.slice(0, 50);
+            localStorage.setItem('nophish_activity', JSON.stringify(activityLog));
+        }
+
+        function simulateLiveMonitoring() {
+            const scanStatus = document.getElementById('scan-status');
+            if (scanStatus) {
+                scanStatus.innerHTML = '<span class="live-indicator"></span> Scanning inbox...';
+            }
+            
+            setTimeout(() => {
+                if (emails.length > 0 && activityLog.length > 0) {
+                    const latest = activityLog[0];
+                    if (scanStatus) {
+                        scanStatus.innerHTML = `<span style="color: ${latest.type === 'phishing' ? '#ff4444' : '#00ff88'}">
+                            <i class="bi bi-${latest.type === 'phishing' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                            Last scan: ${latest.type.toUpperCase()} - Score: ${latest.score}
+                        </span>`;
+                    }
+                } else {
+                    if (scanStatus) {
+                        scanStatus.innerHTML = '<span style="color: #666;">Waiting for emails...</span>';
+                    }
+                }
+            }, 2000);
         }
 
         function addDemoData() {
@@ -67,25 +150,12 @@
                         url_score: 3,
                         html_score: 3,
                         ml_score: 2,
-                        url_reasons: ['Suspicious URL: paypal-fake.com', 'Excessive subdomains'],
-                        html_reasons: ['Password input field detected', 'Login form found'],
-                        ml_reasons: ['urgent keyword detected', 'verify keyword detected']
-                    },
-                    {
-                        id: 2,
-                        timestamp: new Date(Date.now() - 86400000).toISOString(),
-                        sender: 'newsletter@legit-company.com',
-                        subject: 'Monthly Newsletter',
-                        is_phishing: false,
-                        total_score: 1,
-                        url_score: 0,
-                        html_score: 1,
-                        ml_score: 0,
-                        url_reasons: [],
-                        html_reasons: [],
-                        ml_reasons: []
+                        url_reasons: ['Suspicious URL: paypal-fake.com'],
+                        html_reasons: ['Password field detected'],
+                        ml_reasons: ['urgent keyword detected']
                     }
                 ];
+                addActivity('phishing', 'security@paypal-fake.com', 'URGENT: Your account has been compromised!', 8);
                 saveEmails();
             }
         }
@@ -98,31 +168,36 @@
 
             document.getElementById('content').innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-speedometer2"></i> Dashboard Overview</h2>
-                    <span class="text-muted">Real-time phishing detection monitoring</span>
+                    <h2><i class="bi bi-speedometer2"></i> Dashboard 
+                        <span id="scan-status" style="font-size: 14px; color: #666;"></span>
+                    </h2>
+                    <div>
+                        <span class="live-indicator"></span>
+                        <span style="color: #00ff88; margin-left: 8px;">LIVE</span>
+                    </div>
                 </div>
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <div class="card stat-card total p-4">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="mb-1">Total Emails</h6><h2 class="mb-0">${total}</h2></div>
-                                <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                                <div><h6 class="mb-1" style="color: #4488ff;">Total Emails</h6><h2 class="mb-0">${total}</h2></div>
+                                <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.3; color: #4488ff;"></i>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card stat-card phishing p-4">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="mb-1">Phishing Detected</h6><h2 class="mb-0">${phishing}</h2></div>
-                                <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                                <div><h6 class="mb-1" style="color: #ff4444;">Phishing Detected</h6><h2 class="mb-0">${phishing}</h2></div>
+                                <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem; opacity: 0.3; color: #ff4444;"></i>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card stat-card clean p-4">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="mb-1">Clean Emails</h6><h2 class="mb-0">${clean}</h2></div>
-                                <i class="bi bi-check-circle-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                                <div><h6 class="mb-1" style="color: #00ff88;">Clean Emails</h6><h2 class="mb-0">${clean}</h2></div>
+                                <i class="bi bi-check-circle-fill" style="font-size: 3rem; opacity: 0.3; color: #00ff88;"></i>
                             </div>
                         </div>
                     </div>
@@ -130,11 +205,11 @@
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <div class="card table-card">
-                            <div class="card-header bg-white border-0"><h5 class="mb-0"><i class="bi bi-pie-chart"></i> Detection Rate</h5></div>
+                            <div class="card-header bg-dark border-secondary"><h5 class="mb-0"><i class="bi bi-pie-chart"></i> Detection Rate</h5></div>
                             <div class="card-body text-center">
-                                <div class="display-4">${rate}%</div>
+                                <div class="display-4" style="color: ${rate > 50 ? '#ff4444' : '#00ff88'}">${rate}%</div>
                                 <p class="text-muted">Phishing detection rate</p>
-                                <div class="progress" style="height: 25px;">
+                                <div class="progress bg-dark" style="height: 25px;">
                                     <div class="progress-bar bg-danger" style="width: ${rate}%"></div>
                                     <div class="progress-bar bg-success" style="width: ${100-rate}%"></div>
                                 </div>
@@ -143,60 +218,110 @@
                     </div>
                     <div class="col-md-6">
                         <div class="card table-card">
-                            <div class="card-header bg-white border-0"><h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5></div>
-                            <div class="card-body">
-                                <button class="btn btn-outline-danger w-100 mb-2" onclick="showPage('emails')">
-                                    <i class="bi bi-exclamation-triangle"></i> View Phishing Emails
-                                </button>
-                                <button class="btn btn-outline-primary w-100 mb-2" onclick="showPage('emails')">
-                                    <i class="bi bi-envelope"></i> View All Emails
-                                </button>
-                                <button class="btn btn-outline-success w-100" onclick="showPage('stats')">
-                                    <i class="bi bi-graph-up"></i> View Statistics
-                                </button>
+                            <div class="card-header bg-dark border-secondary">
+                                <h5 class="mb-0"><i class="bi bi-lightning"></i> Recent Activity</h5>
+                            </div>
+                            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                ${activityLog.slice(0, 5).map(a => `
+                                    <div class="activity-item ${a.type} mb-2">
+                                        <small style="color: #666;">${new Date(a.timestamp).toLocaleTimeString()}</small><br>
+                                        <strong style="color: ${a.type === 'phishing' ? '#ff4444' : '#00ff88'}">
+                                            <i class="bi bi-${a.type === 'phishing' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                                            ${a.type.toUpperCase()}
+                                        </strong>
+                                        <br><span style="color: #888;">${a.subject.substring(0, 40)}...</span>
+                                    </div>
+                                `).join('')}
+                                ${activityLog.length === 0 ? '<p class="text-muted">No activity yet</p>' : ''}
                             </div>
                         </div>
                     </div>
                 </div>
             `;
+            simulateLiveMonitoring();
+        }
+
+        function showLiveMonitor() {
+            document.getElementById('content').innerHTML = `
+                <div class="text-center">
+                    <h2><i class="bi bi-radar" style="color: #00ff88;"></i> Live Email Monitoring</h2>
+                    <p class="text-muted">Waiting for incoming emails from Gmail...</p>
+                </div>
+                <div class="card table-card scanning" style="position: relative; overflow: hidden;">
+                    <div class="scanner-line"></div>
+                    <div class="card-body text-center py-5">
+                        <div style="font-size: 80px;">
+                            <i class="bi bi-envelope-open" style="color: #333;"></i>
+                        </div>
+                        <h4 class="mt-3" id="live-status" style="color: #00ff88;">Connecting to Gmail...</h4>
+                        <p class="text-muted">The system checks your Gmail every 5 minutes</p>
+                        <div class="mt-4">
+                            <button class="btn btn-outline-primary" onclick="refreshDashboard()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card table-card">
+                            <div class="card-header bg-dark border-secondary">
+                                <h5 class="mb-0">Activity Log</h5>
+                            </div>
+                            <div class="card-body">
+                                ${activityLog.map(a => `
+                                    <div class="activity-item ${a.type} mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <strong style="color: ${a.type === 'phishing' ? '#ff4444' : '#00ff88'}">
+                                                <i class="bi bi-${a.type === 'phishing' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                                                ${a.type.toUpperCase()}
+                                            </strong>
+                                            <small style="color: #666;">${new Date(a.timestamp).toLocaleString()}</small>
+                                        </div>
+                                        <div>From: ${a.sender}</div>
+                                        <div>Subject: ${a.subject}</div>
+                                        <div>Score: <span class="badge ${a.score >= 3 ? 'bg-danger' : 'bg-success'}">${a.score}/10</span></div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const status = document.getElementById('live-status');
+                if (status && emails.length > 0) {
+                    status.innerHTML = '<i class="bi bi-check-circle"></i> Monitoring Active';
+                    status.style.color = '#00ff88';
+                }
+            }, 1500);
         }
 
         function showEmails() {
-            const filter = document.getElementById('filter')?.value || 'all';
-            let filtered = emails;
-            if (filter === 'phishing') filtered = emails.filter(e => e.is_phishing);
-            if (filter === 'clean') filtered = emails.filter(e => !e.is_phishing);
-
             document.getElementById('content').innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-envelope"></i> Email Logs</h2>
-                    <button class="btn btn-primary" onclick="clearData()"><i class="bi bi-trash"></i> Clear All</button>
-                </div>
-                <div class="card table-card mb-4">
-                    <div class="card-body">
-                        <select id="filter" class="form-select" onchange="showEmails()">
-                            <option value="all">All Emails</option>
-                            <option value="phishing">Phishing Only</option>
-                            <option value="clean">Clean Only</option>
-                        </select>
+                    <div>
+                        <button class="btn btn-outline-danger" onclick="clearData()"><i class="bi bi-trash"></i> Clear All</button>
+                        <button class="btn btn-outline-primary" onclick="refreshDashboard()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
                     </div>
                 </div>
                 <div class="card table-card">
                     <div class="card-body p-0">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr><th>Time</th><th>Status</th><th>Sender</th><th>Subject</th><th>Score</th><th>Actions</th></tr>
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                                <tr><th>Time</th><th>Status</th><th>Sender</th><th>Subject</th><th>Score</th></tr>
                             </thead>
                             <tbody>
-                                ${filtered.length === 0 ? '<tr><td colspan="6" class="text-center py-4">No emails found</td></tr>' : ''}
-                                ${filtered.map(e => `
+                                ${emails.length === 0 ? '<tr><td colspan="5" class="text-center py-4">No emails yet</td></tr>' : ''}
+                                ${emails.map(e => `
                                     <tr>
                                         <td>${new Date(e.timestamp).toLocaleString()}</td>
                                         <td><span class="badge ${e.is_phishing ? 'badge-phishing' : 'badge-clean'}">${e.is_phishing ? 'Phishing' : 'Clean'}</span></td>
-                                        <td>${(e.sender || '').substring(0, 40)}</td>
+                                        <td>${(e.sender || '').substring(0, 30)}</td>
                                         <td>${(e.subject || '').substring(0, 40)}</td>
                                         <td><span class="badge bg-${e.is_phishing ? 'danger' : 'secondary'}">${e.total_score}/10</span></td>
-                                        <td><button class="btn btn-sm btn-outline-primary" onclick="viewEmail(${e.id})"><i class="bi bi-eye"></i></button></td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -206,83 +331,16 @@
             `;
         }
 
-        function viewEmail(id) {
-            const email = emails.find(e => e.id === id);
-            if (!email) return;
-
-            document.getElementById('content').innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-envelope-open"></i> Email Details</h2>
-                    <button class="btn btn-outline-secondary" onclick="showPage('emails')"><i class="bi bi-arrow-left"></i> Back</button>
-                </div>
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="card table-card mb-4">
-                            <div class="card-header bg-white border-0"><h5 class="mb-0">Email Information</h5></div>
-                            <div class="card-body">
-                                <table class="table table-borderless">
-                                    <tr><th>Status</th><td><span class="badge ${email.is_phishing ? 'badge-phishing' : 'badge-clean'}">${email.is_phishing ? 'Phishing' : 'Clean'}</span></td></tr>
-                                    <tr><th>Timestamp</th><td>${new Date(email.timestamp).toLocaleString()}</td></tr>
-                                    <tr><th>Sender</th><td>${email.sender || 'N/A'}</td></tr>
-                                    <tr><th>Subject</th><td>${email.subject || 'N/A'}</td></tr>
-                                    <tr><th>Threat Score</th><td><span class="badge bg-${email.is_phishing ? 'danger' : 'secondary'} fs-6">${email.total_score}/10</span></td></tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card table-card mb-4">
-                            <div class="card-header bg-white border-0"><h5 class="mb-0">Detection Scores</h5></div>
-                            <div class="card-body">
-                                <div class="mb-3"><div class="d-flex justify-content-between"><span>URL</span><span class="badge bg-primary">${email.url_score}</span></div><div class="progress" style="height:8px"><div class="progress-bar bg-primary" style="width:${email.url_score*10}%"></div></div></div>
-                                <div class="mb-3"><div class="d-flex justify-content-between"><span>HTML</span><span class="badge bg-info">${email.html_score}</span></div><div class="progress" style="height:8px"><div class="progress-bar bg-info" style="width:${email.html_score*10}%"></div></div></div>
-                                <div class="mb-3"><div class="d-flex justify-content-between"><span>ML</span><span class="badge bg-warning">${email.ml_score}</span></div><div class="progress" style="height:8px"><div class="progress-bar bg-warning" style="width:${email.ml_score*10}%"></div></div></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        function clearData() {
+            if (confirm('Clear all email data?')) {
+                emails = [];
+                activityLog = [];
+                saveEmails();
+            }
         }
 
-        function showStats() {
-            const total = emails.length;
-            const phishing = emails.filter(e => e.is_phishing).length;
-            const clean = total - phishing;
-
-            document.getElementById('content').innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-graph-up"></i> Statistics</h2>
-                </div>
-                <div class="card table-card mb-4">
-                    <div class="card-header bg-white border-0"><h5 class="mb-0">Detection Distribution</h5></div>
-                    <div class="card-body">
-                        <canvas id="pieChart"></canvas>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card table-card">
-                            <div class="card-header bg-white border-0"><h5 class="mb-0">Summary</h5></div>
-                            <div class="card-body">
-                                <table class="table">
-                                    <tr><td>Total Emails</td><td class="text-end"><strong>${total}</strong></td></tr>
-                                    <tr><td>Phishing Detected</td><td class="text-end"><strong class="text-danger">${phishing}</strong></td></tr>
-                                    <tr><td>Clean Emails</td><td class="text-end"><strong class="text-success">${clean}</strong></td></tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            new Chart(document.getElementById('pieChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Clean', 'Phishing'],
-                    datasets: [{ data: [clean, phishing], backgroundColor: ['#28a745', '#dc3545'] }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-            });
+        function refreshDashboard() {
+            location.reload();
         }
 
         function showPage(page) {
@@ -290,19 +348,16 @@
             document.getElementById('nav-' + page).classList.add('active');
             if (page === 'dashboard') updateDashboard();
             else if (page === 'emails') showEmails();
-            else if (page === 'stats') showStats();
-        }
-
-        function clearData() {
-            if (confirm('Clear all email data?')) {
-                emails = [];
-                saveEmails();
-                showEmails();
-            }
+            else if (page === 'live') showLiveMonitor();
         }
 
         addDemoData();
         updateDashboard();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            updateDashboard();
+        }, 30000);
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

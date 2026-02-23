@@ -34,6 +34,47 @@ function checkNewEmails() {
     label = GmailApp.createLabel(labelName);
   }
   
+  const unreadCount = GmailApp.getInboxUnreadCount();
+  Logger.log('Unread count: ' + unreadCount);
+  
+  const threads = GmailApp.getInboxThreads(0, 10);
+  Logger.log('Threads fetched: ' + threads.length);
+  
+  for (let i = 0; i < threads.length; i++) {
+    const thread = threads[i];
+    
+    if (thread.hasLabel(label)) continue;
+    
+    try {
+      const messages = thread.getMessages();
+      const email = messages[0];
+      
+      const emailData = {
+        sender: email.getFrom(),
+        subject: email.getSubject(),
+        body: email.getPlainBody().substring(0, 2000),
+        timestamp: email.getDate().toISOString()
+      };
+      
+      Logger.log('Processing: ' + email.getSubject());
+      
+      const response = UrlFetchApp.fetch(WEBHOOK_URL, {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        payload: JSON.stringify(emailData)
+      });
+      
+      Logger.log('Response: ' + response.getResponseCode());
+      
+      thread.addLabel(label);
+      thread.markRead();
+      
+    } catch (error) {
+      Logger.log('Error: ' + error.message);
+    }
+  }
+}
+  
   // Get unread emails from inbox
   const threads = GmailApp.getInboxUnreadCount();
   Logger.log('Unread count: ' + threads);
