@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
                 timestamp: new Date().toISOString(),
                 score: score,
                 detection_reasons: reasonsHtml || '<li>No details</li>',
-                email_preview_body || ': (data.emailNo body').substring(0, 500)
+                email_preview: (data.email_body || 'No body').substring(0, 500)
             }
         };
 
