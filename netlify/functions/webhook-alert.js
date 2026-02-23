@@ -26,6 +26,7 @@ exports.handler = async (event, context) => {
         const emailjsData = {
             service_id: EMAILJS_SERVICE_ID,
             template_id: EMAILJS_TEMPLATE_ID,
+            user_id: EMAILJS_PUBLIC_KEY,
             accessToken: process.env.EMAILJS_PRIVATE_KEY,
             template_params: {
                 sender: sender,
