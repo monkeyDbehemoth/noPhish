@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>noPhish Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #f8f9fa; }
+        .sidebar { min-height: 100vh; background: #1a1a2e; }
+        .sidebar a { color: #fff; text-decoration: none; padding: 12px 20px; display: block; border-radius: 0; }
+        .sidebar a:hover, .sidebar a.active { background: #16213e; }
+        .stat-card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .stat-card.phishing { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
+        .stat-card.clean { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
+        .stat-card.total { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: white; }
+        .table-card { border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .badge-phishing { background: #dc3545; }
+        .badge-clean { background: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 sidebar p-0">
+                <div class="p-3 text-white border-bottom border-secondary">
+                    <h5><i class="bi bi-shield-exclamation"></i> noPhish</h5>
+                    <small>Phishing Detection</small>
+                </div>
+                <nav>
+                    <a href="#" onclick="showPage('dashboard')" class="active" id="nav-dashboard">
+                        <i class="bi bi-house-door"></i> Dashboard
+                    </a>
+                    <a href="#" onclick="showPage('emails')" id="nav-emails">
+                        <i class="bi bi-envelope"></i> All Emails
+                    </a>
+                    <a href="#" onclick="showPage('stats')" id="nav-stats">
+                        <i class="bi bi-graph-up"></i> Statistics
+                    </a>
+                </nav>
+            </div>
+            <div class="col-md-10 p-4" id="content">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let emails = JSON.parse(localStorage.getItem('nophish_emails') || '[]');
+
+        function saveEmails() {
+            localStorage.setItem('nophish_emails', JSON.stringify(emails));
+            updateDashboard();
+        }
+
+        function addDemoData() {
+            if (emails.length === 0) {
+                emails = [
+                    {
+                        id: 1,
+                        timestamp: new Date().toISOString(),
+                        sender: 'security@paypal-fake.com',
+                        subject: 'URGENT: Your account has been compromised!',
+                        is_phishing: true,
+                        total_score: 8,
+                        url_score: 3,
+                        html_score: 3,
+                        ml_score: 2,
+                        url_reasons: ['Suspicious URL: paypal-fake.com', 'Excessive subdomains'],
+                        html_reasons: ['Password input field detected', 'Login form found'],
+                        ml_reasons: ['urgent keyword detected', 'verify keyword detected']
+                    },
+                    {
+                        id: 2,
+                        timestamp: new Date(Date.now() - 86400000).toISOString(),
+                        sender: 'newsletter@legit-company.com',
+                        subject: 'Monthly Newsletter',
+                        is_phishing: false,
+                        total_score: 1,
+                        url_score: 0,
+                        html_score: 1,
+                        ml_score: 0,
+                        url_reasons: [],
+                        html_reasons: [],
+                        ml_reasons: []
+                    }
+                ];
+                saveEmails();
+            }
+        }
+
+        function updateDashboard() {
+            const total = emails.length;
+            const phishing = emails.filter(e => e.is_phishing).length;
+            const clean = total - phishing;
+            const rate = total > 0 ? Math.round((phishing / total) * 100) : 0;
+
+            document.getElementById('content').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-speedometer2"></i> Dashboard Overview</h2>
+                    <span class="text-muted">Real-time phishing detection monitoring</span>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card stat-card total p-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><h6 class="mb-1">Total Emails</h6><h2 class="mb-0">${total}</h2></div>
+                                <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card stat-card phishing p-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><h6 class="mb-1">Phishing Detected</h6><h2 class="mb-0">${phishing}</h2></div>
+                                <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card stat-card clean p-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><h6 class="mb-1">Clean Emails</h6><h2 class="mb-0">${clean}</h2></div>
+                                <i class="bi bi-check-circle-fill" style="font-size: 3rem; opacity: 0.5;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card table-card">
+                            <div class="card-header bg-white border-0"><h5 class="mb-0"><i class="bi bi-pie-chart"></i> Detection Rate</h5></div>
+                            <div class="card-body text-center">
+                                <div class="display-4">${rate}%</div>
+                                <p class="text-muted">Phishing detection rate</p>
+                                <div class="progress" style="height: 25px;">
+                                    <div class="progress-bar bg-danger" style="width: ${rate}%"></div>
+                                    <div class="progress-bar bg-success" style="width: ${100-rate}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card table-card">
+                            <div class="card-header bg-white border-0"><h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5></div>
+                            <div class="card-body">
+                                <button class="btn btn-outline-danger w-100 mb-2" onclick="showPage('emails')">
+                                    <i class="bi bi-exclamation-triangle"></i> View Phishing Emails
+                                </button>
+                                <button class="btn btn-outline-primary w-100 mb-2" onclick="showPage('emails')">
+                                    <i class="bi bi-envelope"></i> View All Emails
+                                </button>
+                                <button class="btn btn-outline-success w-100" onclick="showPage('stats')">
+                                    <i class="bi bi-graph-up"></i> View Statistics
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showEmails() {
+            const filter = document.getElementById('filter')?.value || 'all';
+            let filtered = emails;
+            if (filter === 'phishing') filtered = emails.filter(e => e.is_phishing);
+            if (filter === 'clean') filtered = emails.filter(e => !e.is_phishing);
+
+            document.getElementById('content').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-envelope"></i> Email Logs</h2>
+                    <button class="btn btn-primary" onclick="clearData()"><i class="bi bi-trash"></i> Clear All</button>
+                </div>
+                <div class="card table-card mb-4">
+                    <div class="card-body">
+                        <select id="filter" class="form-select" onchange="showEmails()">
+                            <option value="all">All Emails</option>
+                            <option value="phishing">Phishing Only</option>
+                            <option value="clean">Clean Only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card table-card">
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Time</th><th>Status</th><th>Sender</th><th>Subject</th><th>Score</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody>
+                                ${filtered.length === 0 ? '<tr><td colspan="6" class="text-center py-4">No emails found</td></tr>' : ''}
+                                ${filtered.map(e => `
+                                    <tr>
+                                        <td>${new Date(e.timestamp).toLocaleString()}</td>
+                                        <td><span class="badge ${e.is_phishing ? 'badge-phishing' : 'badge-clean'}">${e.is_phishing ? 'Phishing' : 'Clean'}</span></td>
+                                        <td>${(e.sender || '').substring(0, 40)}</td>
+                                        <td>${(e.subject || '').substring(0, 40)}</td>
+                                        <td><span class="badge bg-${e.is_phishing ? 'danger' : 'secondary'}">${e.total_score}/10</span></td>
+                                        <td><button class="btn btn-sm btn-outline-primary" onclick="viewEmail(${e.id})"><i class="bi bi-eye"></i></button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function viewEmail(id) {
+            const email = emails.find(e => e.id === id);
+            if (!email) return;
+
+            document.getElementById('content').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-envelope-open"></i> Email Details</h2>
+                    <button class="btn btn-outline-secondary" onclick="showPage('emails')"><i class="bi bi-arrow-left"></i> Back</button>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card table-card mb-4">
+                            <div class="card-header bg-white border-0"><h5 class="mb-0">Email Information</h5></div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr><th>Status</th><td><span class="badge ${email.is_phishing ? 'badge-phishing' : 'badge-clean'}">${email.is_phishing ? 'Phishing' : 'Clean'}</span></td></tr>
+                                    <tr><th>Timestamp</th><td>${new Date(email.timestamp).toLocaleString()}</td></tr>
+                                    <tr><th>Sender</th><td>${email.sender || 'N/A'}</td></tr>
+                                    <tr><th>Subject</th><td>${email.subject || 'N/A'}</td></tr>
+                                    <tr><th>Threat Score</th><td><span class="badge bg-${email.is_phishing ? 'danger' : 'secondary'} fs-6">${email.total_score}/10</span></td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card table-card mb-4">
+                            <div class="card-header bg-white border-0"><h5 class="mb-0">Detection Scores</h5></div>
+                            <div class="card-body">
+                                <div class="mb-3"><div class="d-flex justify-content-between"><span>URL</span><span class="badge bg-primary">${email.url_score}</span></div><div class="progress" style="height:8px"><div class="progress-bar bg-primary" style="width:${email.url_score*10}%"></div></div></div>
+                                <div class="mb-3"><div class="d-flex justify-content-between"><span>HTML</span><span class="badge bg-info">${email.html_score}</span></div><div class="progress" style="height:8px"><div class="progress-bar bg-info" style="width:${email.html_score*10}%"></div></div></div>
+                                <div class="mb-3"><div class="d-flex justify-content-between"><span>ML</span><span class="badge bg-warning">${email.ml_score}</span></div><div class="progress" style="height:8px"><div class="progress-bar bg-warning" style="width:${email.ml_score*10}%"></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showStats() {
+            const total = emails.length;
+            const phishing = emails.filter(e => e.is_phishing).length;
+            const clean = total - phishing;
+
+            document.getElementById('content').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-graph-up"></i> Statistics</h2>
+                </div>
+                <div class="card table-card mb-4">
+                    <div class="card-header bg-white border-0"><h5 class="mb-0">Detection Distribution</h5></div>
+                    <div class="card-body">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card table-card">
+                            <div class="card-header bg-white border-0"><h5 class="mb-0">Summary</h5></div>
+                            <div class="card-body">
+                                <table class="table">
+                                    <tr><td>Total Emails</td><td class="text-end"><strong>${total}</strong></td></tr>
+                                    <tr><td>Phishing Detected</td><td class="text-end"><strong class="text-danger">${phishing}</strong></td></tr>
+                                    <tr><td>Clean Emails</td><td class="text-end"><strong class="text-success">${clean}</strong></td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            new Chart(document.getElementById('pieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Clean', 'Phishing'],
+                    datasets: [{ data: [clean, phishing], backgroundColor: ['#28a745', '#dc3545'] }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function showPage(page) {
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            document.getElementById('nav-' + page).classList.add('active');
+            if (page === 'dashboard') updateDashboard();
+            else if (page === 'emails') showEmails();
+            else if (page === 'stats') showStats();
+        }
+
+        function clearData() {
+            if (confirm('Clear all email data?')) {
+                emails = [];
+                saveEmails();
+                showEmails();
+            }
+        }
+
+        addDemoData();
+        updateDashboard();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
