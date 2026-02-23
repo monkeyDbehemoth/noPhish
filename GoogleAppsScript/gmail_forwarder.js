@@ -34,9 +34,12 @@ function checkNewEmails() {
     label = GmailApp.createLabel(labelName);
   }
   
-  // Get unread emails from inbox (last 20)
+  // Get unread emails from inbox
   const threads = GmailApp.getInboxUnreadCount();
+  Logger.log('Unread count: ' + threads);
+  
   const emails = GmailApp.getMessagesForInbox();
+  Logger.log('Total emails in inbox: ' + emails.length);
   
   // Process up to 10 recent emails
   const toProcess = emails.slice(0, 10);
@@ -59,6 +62,8 @@ function checkNewEmails() {
         timestamp: email.getDate().toISOString()
       };
       
+      Logger.log('Processing: ' + email.getSubject() + ' from ' + email.getFrom());
+      
       // Send to webhook
       const response = UrlFetchApp.fetch(WEBHOOK_URL, {
         method: 'post',
@@ -67,6 +72,8 @@ function checkNewEmails() {
         },
         payload: JSON.stringify(emailData)
       });
+      
+      Logger.log('Response: ' + response.getResponseCode() + ' - ' + response.getContentText().substring(0, 200));
       
       // Mark as processed
       thread.addLabel(label);
