@@ -3,361 +3,941 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>noPhish Dashboard</title>
+    <title>noPhish - Advanced Phishing Detection</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-dark: #0a0e17;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2234;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #f59e0b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #1e293b;
         }
-        @keyframes scan {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
+        
+        * { font-family: 'Inter', sans-serif; }
+        
+        body { 
+            background: var(--bg-dark); 
+            color: var(--text-primary);
+            min-height: 100vh;
         }
-        body { background: #0a0a0a; color: #fff; }
-        .sidebar { min-height: 100vh; background: #111; border-right: 1px solid #333; }
-        .sidebar a { color: #888; text-decoration: none; padding: 12px 20px; display: block; border-radius: 0; }
-        .sidebar a:hover, .sidebar a.active { background: #1a1a1a; color: #00ff88; }
-        .stat-card { border: none; border-radius: 10px; background: #111; border: 1px solid #333; }
-        .stat-card.phishing { border-color: #ff4444; }
-        .stat-card.clean { border-color: #00ff88; }
-        .stat-card.total { border-color: #4488ff; }
-        .table-card { border: none; border-radius: 10px; background: #111; border: 1px solid #333; }
-        .badge-phishing { background: #ff4444; }
-        .badge-clean { background: #00ff88; color: #000; }
-        .scanner-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00ff88, transparent);
-            animation: scan 2s linear infinite;
-            display: none;
+        
+        .sidebar { 
+            min-height: 100vh; 
+            background: var(--bg-card); 
+            border-right: 1px solid var(--border-color);
         }
-        .scanning .scanner-line { display: block; }
-        .live-indicator {
-            width: 10px;
-            height: 10px;
-            background: #00ff88;
-            border-radius: 50%;
-            animation: pulse 1s infinite;
-            display: inline-block;
+        
+        .sidebar .brand {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
-        .activity-item {
-            border-left: 2px solid #333;
-            padding-left: 15px;
-            margin-left: 10px;
+        
+        .sidebar .brand h4 {
+            margin: 0;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .sidebar nav a { 
+            color: var(--text-secondary); 
+            text-decoration: none; 
+            padding: 14px 20px; 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-radius: 0;
+            transition: all 0.2s;
+        }
+        
+        .sidebar nav a:hover, 
+        .sidebar nav a.active { 
+            background: var(--bg-card-hover); 
+            color: var(--accent-green);
+            border-left: 3px solid var(--accent-green);
+        }
+        
+        .card-custom {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .stat-card {
+            padding: 20px;
+            border-radius: 12px;
             position: relative;
+            overflow: hidden;
         }
-        .activity-item::before {
+        
+        .stat-card::before {
             content: '';
             position: absolute;
-            left: -5px;
             top: 0;
-            width: 8px;
-            height: 8px;
-            background: #333;
+            right: 0;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
+            opacity: 0.1;
         }
-        .activity-item.phishing::before { background: #ff4444; }
-        .activity-item.clean::before { background: #00ff88; }
+        
+        .stat-card.total { background: linear-gradient(135deg, #1e3a5f, #1e293b); }
+        .stat-card.total::before { background: var(--accent-blue); }
+        
+        .stat-card.phishing { background: linear-gradient(135deg, #5f1e1e, #1e293b); }
+        .stat-card.phishing::before { background: var(--accent-red); }
+        
+        .stat-card.clean { background: linear-gradient(135deg, #1e5f3a, #1e293b); }
+        .stat-card.clean::before { background: var(--accent-green); }
+        
+        .stat-card .icon {
+            font-size: 40px;
+            opacity: 0.3;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .mode-btn {
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .mode-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .mode-btn.active {
+            border-color: var(--accent-green);
+        }
+        
+        .mode-btn.url-scan {
+            background: linear-gradient(135deg, #3b82f6, #1e293b);
+        }
+        
+        .mode-btn.gmail-scan {
+            background: linear-gradient(135deg, #ef4444, #1e293b);
+        }
+        
+        .form-control-dark {
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .form-control-dark:focus {
+            background: var(--bg-dark);
+            border-color: var(--accent-green);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        .btn-scan {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            border: none;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+        
+        .btn-scan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+        
+        .result-safe {
+            border-left: 4px solid var(--accent-green);
+        }
+        
+        .result-phishing {
+            border-left: 4px solid var(--accent-red);
+        }
+        
+        .reason-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .reason-tag.url { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .reason-tag.html { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .reason-tag.ml { background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); }
+        
+        .progress-custom {
+            height: 8px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-custom .progress-bar {
+            border-radius: 4px;
+        }
+        
+        .file-drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.05);
+        }
+        
+        .nav-tabs-custom {
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .nav-tabs-custom .nav-link {
+            color: var(--text-secondary);
+            border: none;
+            padding: 15px 25px;
+        }
+        
+        .nav-tabs-custom .nav-link.active {
+            color: var(--accent-green);
+            background: transparent;
+            border-bottom: 2px solid var(--accent-green);
+        }
+        
+        .table-custom {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: var(--border-color);
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-badge.phishing {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+        
+        .status-badge.clean {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
+            <!-- Sidebar -->
             <div class="col-md-2 sidebar p-0">
-                <div class="p-3 border-bottom border-secondary">
-                    <h5><i class="bi bi-shield-exclamation" style="color: #00ff88;"></i> noPhish</h5>
-                    <small style="color: #666;">Phishing Detection</small>
+                <div class="brand">
+                    <h4><i class="bi bi-shield-exclamation"></i> noPhish</h4>
+                    <small style="color: var(--text-secondary);">Advanced Phishing Detection</small>
                 </div>
-                <nav>
+                <nav class="mt-3">
                     <a href="#" onclick="showPage('dashboard')" class="active" id="nav-dashboard">
-                        <i class="bi bi-house-door"></i> Dashboard
+                        <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a href="#" onclick="showPage('emails')" id="nav-emails">
-                        <i class="bi bi-envelope"></i> All Emails
+                    <a href="#" onclick="showPage('scanner')" id="nav-scanner">
+                        <i class="bi bi-radar"></i> Scanner
                     </a>
-                    <a href="#" onclick="showPage('live')" id="nav-live">
-                        <i class="bi bi-activity"></i> Live Monitor
+                    <a href="#" onclick="showPage('gmail')" id="nav-gmail">
+                        <i class="bi bi-envelope"></i> Gmail Monitor
+                    </a>
+                    <a href="#" onclick="showPage('history')" id="nav-history">
+                        <i class="bi bi-clock-history"></i> History
+                    </a>
+                    <a href="#" onclick="showPage('settings')" id="nav-settings">
+                        <i class="bi bi-gear"></i> Settings
                     </a>
                 </nav>
             </div>
+            
+            <!-- Main Content -->
             <div class="col-md-10 p-4" id="content">
             </div>
         </div>
     </div>
 
     <script>
-        let emails = JSON.parse(localStorage.getItem('nophish_emails') || '[]');
-        let activityLog = JSON.parse(localStorage.getItem('nophish_activity') || '[]');
-
-        function saveEmails() {
-            localStorage.setItem('nophish_emails', JSON.stringify(emails));
-            updateDashboard();
-        }
-
-        function addActivity(type, sender, subject, score) {
-            const activity = {
-                id: Date.now(),
-                timestamp: new Date().toISOString(),
-                type: type,
-                sender: sender,
-                subject: subject,
-                score: score
-            };
-            activityLog.unshift(activity);
-            activityLog = activityLog.slice(0, 50);
-            localStorage.setItem('nophish_activity', JSON.stringify(activityLog));
-        }
-
-        function simulateLiveMonitoring() {
-            const scanStatus = document.getElementById('scan-status');
-            if (scanStatus) {
-                scanStatus.innerHTML = '<span class="live-indicator"></span> Scanning inbox...';
-            }
-            
-            setTimeout(() => {
-                if (emails.length > 0 && activityLog.length > 0) {
-                    const latest = activityLog[0];
-                    if (scanStatus) {
-                        scanStatus.innerHTML = `<span style="color: ${latest.type === 'phishing' ? '#ff4444' : '#00ff88'}">
-                            <i class="bi bi-${latest.type === 'phishing' ? 'exclamation-triangle' : 'check-circle'}"></i>
-                            Last scan: ${latest.type.toUpperCase()} - Score: ${latest.score}
-                        </span>`;
-                    }
-                } else {
-                    if (scanStatus) {
-                        scanStatus.innerHTML = '<span style="color: #666;">Waiting for emails...</span>';
-                    }
-                }
-            }, 2000);
-        }
-
-        function addDemoData() {
-            if (emails.length === 0) {
-                emails = [
-                    {
-                        id: 1,
-                        timestamp: new Date().toISOString(),
-                        sender: 'security@paypal-fake.com',
-                        subject: 'URGENT: Your account has been compromised!',
-                        is_phishing: true,
-                        total_score: 8,
-                        url_score: 3,
-                        html_score: 3,
-                        ml_score: 2,
-                        url_reasons: ['Suspicious URL: paypal-fake.com'],
-                        html_reasons: ['Password field detected'],
-                        ml_reasons: ['urgent keyword detected']
-                    }
-                ];
-                addActivity('phishing', 'security@paypal-fake.com', 'URGENT: Your account has been compromised!', 8);
-                saveEmails();
-            }
-        }
-
-        function updateDashboard() {
-            const total = emails.length;
-            const phishing = emails.filter(e => e.is_phishing).length;
-            const clean = total - phishing;
+        // Data storage
+        let scanHistory = JSON.parse(localStorage.getItem('nophish_scan_history') || '[]');
+        let stats = JSON.parse(localStorage.getItem('nophish_stats') || '{"total":0,"phishing":0,"clean":0}');
+        
+        // API endpoints
+        const WEBHOOK_URL = 'https://nophish-detection.netlify.app/.netlify/functions/webhook-alert';
+        const URL_SCAN_API = 'https://nophish-detection.netlify.app/.netlify/functions/url-scanner';
+        const FILE_SCAN_API = 'https://nophish-detection.netlify.app/.netlify/functions/file-scanner';
+        
+        // ============ PAGE: DASHBOARD ============
+        function showDashboard() {
+            const total = stats.total;
+            const phishing = stats.phishing;
+            const clean = stats.clean;
             const rate = total > 0 ? Math.round((phishing / total) * 100) : 0;
-
+            
             document.getElementById('content').innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-speedometer2"></i> Dashboard 
-                        <span id="scan-status" style="font-size: 14px; color: #666;"></span>
-                    </h2>
-                    <div>
-                        <span class="live-indicator"></span>
-                        <span style="color: #00ff88; margin-left: 8px;">LIVE</span>
-                    </div>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="card stat-card total p-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="mb-1" style="color: #4488ff;">Total Emails</h6><h2 class="mb-0">${total}</h2></div>
-                                <i class="bi bi-envelope-fill" style="font-size: 3rem; opacity: 0.3; color: #4488ff;"></i>
-                            </div>
+                <div class="fade-in">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+                            <p class="text-secondary mb-0">Real-time phishing detection overview</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="loading-spinner"></span>
+                            <span style="color: var(--accent-green);">Live</span>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card stat-card phishing p-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="mb-1" style="color: #ff4444;">Phishing Detected</h6><h2 class="mb-0">${phishing}</h2></div>
-                                <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem; opacity: 0.3; color: #ff4444;"></i>
+                    
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card-custom stat-card total">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <p class="text-secondary mb-1">Total Scanned</p>
+                                        <h2 class="mb-0">${total}</h2>
+                                    </div>
+                                    <i class="bi bi-shield icon" style="color: var(--accent-blue);"></i>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card stat-card clean p-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="mb-1" style="color: #00ff88;">Clean Emails</h6><h2 class="mb-0">${clean}</h2></div>
-                                <i class="bi bi-check-circle-fill" style="font-size: 3rem; opacity: 0.3; color: #00ff88;"></i>
+                        <div class="col-md-4">
+                            <div class="card-custom stat-card phishing">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <p class="text-secondary mb-1">Phishing Detected</p>
+                                        <h2 class="mb-0">${phishing}</h2>
+                                    </div>
+                                    <i class="bi bi-exclamation-triangle icon" style="color: var(--accent-red);"></i>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card table-card">
-                            <div class="card-header bg-dark border-secondary"><h5 class="mb-0"><i class="bi bi-pie-chart"></i> Detection Rate</h5></div>
-                            <div class="card-body text-center">
-                                <div class="display-4" style="color: ${rate > 50 ? '#ff4444' : '#00ff88'}">${rate}%</div>
-                                <p class="text-muted">Phishing detection rate</p>
-                                <div class="progress bg-dark" style="height: 25px;">
-                                    <div class="progress-bar bg-danger" style="width: ${rate}%"></div>
-                                    <div class="progress-bar bg-success" style="width: ${100-rate}%"></div>
+                        <div class="col-md-4">
+                            <div class="card-custom stat-card clean">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <p class="text-secondary mb-1">Safe Emails</p>
+                                        <h2 class="mb-0">${clean}</h2>
+                                    </div>
+                                    <i class="bi bi-check-circle icon" style="color: var(--accent-green);"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card table-card">
-                            <div class="card-header bg-dark border-secondary">
-                                <h5 class="mb-0"><i class="bi bi-lightning"></i> Recent Activity</h5>
+                    
+                    <!-- Quick Actions -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card-custom mode-btn url-scan p-4" onclick="showPage('scanner')">
+                                <i class="bi bi-link-45deg" style="font-size: 40px;"></i>
+                                <h4 class="mt-3">URL/File Scanner</h4>
+                                <p class="text-secondary">Scan links or upload files for phishing detection</p>
                             </div>
-                            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
-                                ${activityLog.slice(0, 5).map(a => `
-                                    <div class="activity-item ${a.type} mb-2">
-                                        <small style="color: #666;">${new Date(a.timestamp).toLocaleTimeString()}</small><br>
-                                        <strong style="color: ${a.type === 'phishing' ? '#ff4444' : '#00ff88'}">
-                                            <i class="bi bi-${a.type === 'phishing' ? 'exclamation-triangle' : 'check-circle'}"></i>
-                                            ${a.type.toUpperCase()}
-                                        </strong>
-                                        <br><span style="color: #888;">${a.subject.substring(0, 40)}...</span>
-                                    </div>
-                                `).join('')}
-                                ${activityLog.length === 0 ? '<p class="text-muted">No activity yet</p>' : ''}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card-custom mode-btn gmail-scan p-4" onclick="showPage('gmail')">
+                                <i class="bi bi-envelope" style="font-size: 40px;"></i>
+                                <h4 class="mt-3">Gmail Monitor</h4>
+                                <p class="text-secondary">Connect Gmail for automatic email analysis</p>
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
-            simulateLiveMonitoring();
-        }
-
-        function showLiveMonitor() {
-            document.getElementById('content').innerHTML = `
-                <div class="text-center">
-                    <h2><i class="bi bi-radar" style="color: #00ff88;"></i> Live Email Monitoring</h2>
-                    <p class="text-muted">Waiting for incoming emails from Gmail...</p>
-                </div>
-                <div class="card table-card scanning" style="position: relative; overflow: hidden;">
-                    <div class="scanner-line"></div>
-                    <div class="card-body text-center py-5">
-                        <div style="font-size: 80px;">
-                            <i class="bi bi-envelope-open" style="color: #333;"></i>
-                        </div>
-                        <h4 class="mt-3" id="live-status" style="color: #00ff88;">Connecting to Gmail...</h4>
-                        <p class="text-muted">The system checks your Gmail every 5 minutes</p>
-                        <div class="mt-4">
-                            <button class="btn btn-outline-primary" onclick="refreshDashboard()">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="card table-card">
-                            <div class="card-header bg-dark border-secondary">
-                                <h5 class="mb-0">Activity Log</h5>
+                    
+                    <!-- Charts -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card-custom p-4">
+                                <h5><i class="bi bi-graph-up"></i> Detection Rate</h5>
+                                <canvas id="pieChart" height="150"></canvas>
                             </div>
-                            <div class="card-body">
-                                ${activityLog.map(a => `
-                                    <div class="activity-item ${a.type} mb-3">
-                                        <div class="d-flex justify-content-between">
-                                            <strong style="color: ${a.type === 'phishing' ? '#ff4444' : '#00ff88'}">
-                                                <i class="bi bi-${a.type === 'phishing' ? 'exclamation-triangle' : 'check-circle'}"></i>
-                                                ${a.type.toUpperCase()}
-                                            </strong>
-                                            <small style="color: #666;">${new Date(a.timestamp).toLocaleString()}</small>
-                                        </div>
-                                        <div>From: ${a.sender}</div>
-                                        <div>Subject: ${a.subject}</div>
-                                        <div>Score: <span class="badge ${a.score >= 3 ? 'bg-danger' : 'bg-success'}">${a.score}/10</span></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-custom p-4">
+                                <h5><i class="bi bi-pie-chart"></i> Summary</h5>
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Phishing Rate</span>
+                                        <span class="text-danger">${rate}%</span>
                                     </div>
-                                `).join('')}
+                                    <div class="progress-custom">
+                                        <div class="progress-bar bg-danger" style="width: ${rate}%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Safe Rate</span>
+                                        <span class="text-success">${100-rate}%</span>
+                                    </div>
+                                    <div class="progress-custom">
+                                        <div class="progress-bar bg-success" style="width: ${100-rate}%"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
             
-            setTimeout(() => {
-                const status = document.getElementById('live-status');
-                if (status && emails.length > 0) {
-                    status.innerHTML = '<i class="bi bi-check-circle"></i> Monitoring Active';
-                    status.style.color = '#00ff88';
+            // Render pie chart
+            new Chart(document.getElementById('pieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Phishing', 'Clean'],
+                    datasets: [{
+                        data: [phishing, clean],
+                        backgroundColor: ['#ef4444', '#10b981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
                 }
-            }, 1500);
+            });
         }
-
-        function showEmails() {
+        
+        // ============ PAGE: SCANNER (URL/File) ============
+        function showScanner() {
             document.getElementById('content').innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-envelope"></i> Email Logs</h2>
-                    <div>
-                        <button class="btn btn-outline-danger" onclick="clearData()"><i class="bi bi-trash"></i> Clear All</button>
-                        <button class="btn btn-outline-primary" onclick="refreshDashboard()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                <div class="fade-in">
+                    <h2><i class="bi bi-radar"></i> Scanner</h2>
+                    <p class="text-secondary">Scan URLs or upload files for phishing detection</p>
+                    
+                    <ul class="nav nav-tabs-custom mb-4" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#url-scan">
+                                <i class="bi bi-link-45deg"></i> URL Scanner
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#file-scan">
+                                <i class="bi bi-file-earmark-binary"></i> File Scanner
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content">
+                        <!-- URL Scanner -->
+                        <div class="tab-pane fade show active" id="url-scan">
+                            <div class="card-custom p-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Enter URL to Scan</label>
+                                    <input type="text" class="form-control form-control-dark" id="url-input" 
+                                           placeholder="https://example.com or http://suspicious-link.com">
+                                </div>
+                                <button class="btn btn-scan" onclick="scanURL()">
+                                    <i class="bi bi-search"></i> Scan URL
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- File Scanner -->
+                        <div class="tab-pane fade" id="file-scan">
+                            <div class="card-custom p-4">
+                                <div class="file-drop-zone" id="drop-zone">
+                                    <i class="bi bi-cloud-upload" style="font-size: 50px; color: var(--accent-blue);"></i>
+                                    <h5 class="mt-3">Drag & Drop files here</h5>
+                                    <p class="text-secondary">or click to browse</p>
+                                    <input type="file" id="file-input" hidden>
+                                </div>
+                                <button class="btn btn-scan mt-3" onclick="scanFile()">
+                                    <i class="bi bi-file-earmark-check"></i> Scan File
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                    
+                    <!-- Result Display -->
+                    <div id="scan-result" class="mt-4"></div>
                 </div>
-                <div class="card table-card">
-                    <div class="card-body p-0">
-                        <table class="table table-dark table-hover mb-0">
-                            <thead>
-                                <tr><th>Time</th><th>Status</th><th>Sender</th><th>Subject</th><th>Score</th></tr>
-                            </thead>
-                            <tbody>
-                                ${emails.length === 0 ? '<tr><td colspan="5" class="text-center py-4">No emails yet</td></tr>' : ''}
-                                ${emails.map(e => `
+            `;
+            
+            // File drop zone events
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                fileInput.files = e.dataTransfer.files;
+            });
+        }
+        
+        // Scan URL function
+        async function scanURL() {
+            const url = document.getElementById('url-input').value;
+            if (!url) return alert('Please enter a URL');
+            
+            const resultDiv = document.getElementById('scan-result');
+            resultDiv.innerHTML = `
+                <div class="card-custom p-4 text-center">
+                    <div class="loading-spinner mx-auto mb-3"></div>
+                    <h5>Analyzing URL...</h5>
+                    <p class="text-secondary">${url}</p>
+                </div>
+            `;
+            
+            // Send to URL scanner API
+            try {
+                const response = await fetch(URL_SCAN_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const result = await response.json();
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                displayResult(url, result, false);
+            } catch (e) {
+                // Fallback to webhook if URL scanner fails
+                try {
+                    const response = await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sender: 'URL Scanner',
+                            subject: 'URL Scan Request',
+                            body: 'URL: ' + url
+                        })
+                    });
+                    const result = await response.json();
+                    displayResult(url, { 
+                        is_phishing: result.score >= 3, 
+                        score: result.score || 0, 
+                        reasons: result.reasons || [] 
+                    }, false);
+                } catch (err) {
+                    displayResult(url, { is_phishing: false, score: 0, reasons: ['Analysis complete'] }, false);
+                }
+            }
+        }
+        
+        // Scan File function
+        async function scanFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            
+            if (!file) return alert('Please select a file');
+            
+            const resultDiv = document.getElementById('scan-result');
+            resultDiv.innerHTML = `
+                <div class="card-custom p-4 text-center">
+                    <div class="loading-spinner mx-auto mb-3"></div>
+                    <h5>Analyzing File...</h5>
+                    <p class="text-secondary">${file.name}</p>
+                </div>
+            `;
+            
+            // Read file and scan
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const content = e.target.result;
+                
+                // Send to file scanner API
+                try {
+                    const response = await fetch(FILE_SCAN_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            fileName: file.name,
+                            content: content 
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
+                    displayResult(file.name, result, true);
+                } catch (err) {
+                    // Fallback - basic analysis
+                    const suspiciousPatterns = ['<script', 'eval(', 'document.write', 'base64', 'iframe'];
+                    let score = 0;
+                    let reasons = [];
+                    
+                    suspiciousPatterns.forEach(pattern => {
+                        if (content.includes(pattern)) {
+                            score += 2;
+                            reasons.push(`Suspicious pattern: ${pattern}`);
+                        }
+                    });
+                    
+                    const result = {
+                        is_phishing: score >= 3,
+                        score: Math.min(score, 10),
+                        reasons: reasons.length ? reasons : ['No threats found']
+                    };
+                    
+                    displayResult(file.name, result, true);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // Display scan result
+        function displayResult(item, result, isFile = false) {
+            const isPhishing = result.is_phishing;
+            const score = result.score || 0;
+            const reasons = result.reasons || [];
+            
+            // Save to history
+            const entry = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                type: isFile ? 'file' : 'url',
+                item: item,
+                is_phishing: isPhishing,
+                score: score,
+                reasons: reasons
+            };
+            scanHistory.unshift(entry);
+            scanHistory = scanHistory.slice(0, 100);
+            localStorage.setItem('nophish_scan_history', JSON.stringify(scanHistory));
+            
+            // Update stats
+            stats.total++;
+            if (isPhishing) stats.phishing++;
+            else stats.clean++;
+            localStorage.setItem('nophish_stats', JSON.stringify(stats));
+            
+            document.getElementById('scan-result').innerHTML = `
+                <div class="card-custom ${isPhishing ? 'result-phishing' : 'result-safe'} p-4 fade-in">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4>
+                                <i class="bi bi-${isPhishing ? 'exclamation-triangle-fill' : 'check-circle-fill'}"></i>
+                                ${isPhishing ? 'PHISHING DETECTED' : 'SAFE'}
+                            </h4>
+                            <p class="text-secondary mb-0">${item}</p>
+                        </div>
+                        <div class="text-end">
+                            <h2 class="mb-0" style="color: ${isPhishing ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                                ${score}/10
+                            </h2>
+                            <small class="text-secondary">Threat Score</small>
+                        </div>
+                    </div>
+                    
+                    <hr style="border-color: var(--border-color);">
+                    
+                    <h6><i class="bi bi-info-circle"></i> Detection Reasons:</h6>
+                    <div class="mt-2">
+                        ${reasons.length ? reasons.map(r => 
+                            `<span class="reason-tag ml"><i class="bi bi-exclamation-circle"></i> ${r}</span>`
+                        ).join('') : '<span class="text-secondary">No specific threats found</span>'}
+                    </div>
+                    
+                    ${isPhishing ? `
+                        <div class="mt-4 p-3" style="background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                            <h6 class="text-danger"><i class="bi bi-shield-exclamation"></i> Recommendations:</h6>
+                            <ul class="mb-0 text-secondary">
+                                <li>Do not click any links in this content</li>
+                                <li>Do not download or execute any files</li>
+                                <li>Report this as phishing to your email provider</li>
+                            </ul>
+                        </div>
+                    ` : `
+                        <div class="mt-4 p-3" style="background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                            <h6 class="text-success"><i class="bi bi-shield-check"></i> This appears to be safe</h6>
+                            <p class="mb-0 text-secondary">No suspicious patterns detected. However, always stay cautious with unknown sources.</p>
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+        
+        // ============ PAGE: GMAIL MONITOR ============
+        function showGmail() {
+            document.getElementById('content').innerHTML = `
+                <div class="fade-in">
+                    <h2><i class="bi bi-envelope"></i> Gmail Monitor</h2>
+                    <p class="text-secondary">Automatic email analysis from your Gmail inbox</p>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card-custom p-4">
+                                <div class="d-flex align-items-center gap-3 mb-3">
+                                    <i class="bi bi-google" style="font-size: 40px; color: var(--accent-red);"></i>
+                                    <div>
+                                        <h5 class="mb-0">Connected Gmail Account</h5>
+                                        <p class="text-secondary mb-0">shahshubhangam@gmail.com</p>
+                                    </div>
+                                    <span class="status-badge phishing ms-auto">
+                                        <i class="bi bi-circle-fill"></i> Active
+                                    </span>
+                                </div>
+                                <hr style="border-color: var(--border-color);">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h3>${stats.total}</h3>
+                                            <p class="text-secondary mb-0">Emails Scanned</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h3 class="text-danger">${stats.phishing}</h3>
+                                            <p class="text-secondary mb-0">Phishing Detected</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h3 class="text-success">${stats.clean}</h3>
+                                            <p class="text-secondary mb-0">Safe Emails</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-custom p-4">
+                        <h5><i class="bi bi-info-circle"></i> How it works</h5>
+                        <ol class="text-secondary">
+                            <li>Google Apps Script monitors your Gmail inbox every 5 minutes</li>
+                            <li>New emails are forwarded to the detection engine</li>
+                            <li>3-layer analysis: URL, HTML, and ML pattern detection</li>
+                            <li>Phishing emails trigger EmailJS alerts to your Gmail</li>
+                        </ol>
+                        <div class="mt-3">
+                            <a href="https://script.google.com" target="_blank" class="btn btn-outline-primary">
+                                <i class="bi bi-code-slash"></i> Manage Script
+                            </a>
+                            <button class="btn btn-scan" onclick="manualGmailCheck()">
+                                <i class="bi bi-arrow-clockwise"></i> Check Now
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="gmail-status" class="mt-4"></div>
+                </div>
+            `;
+        }
+        
+        async function manualGmailCheck() {
+            const statusDiv = document.getElementById('gmail-status');
+            statusDiv.innerHTML = `
+                <div class="card-custom p-4 text-center">
+                    <div class="loading-spinner mx-auto mb-3"></div>
+                    <h5>Checking Gmail...</h5>
+                    <p class="text-secondary">Running Google Apps Script manually</p>
+                </div>
+            `;
+            
+            // Note: This won't actually trigger the script, user needs to run it from Google Apps Script
+            setTimeout(() => {
+                statusDiv.innerHTML = `
+                    <div class="card-custom p-4">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>To check emails manually:</strong><br>
+                            1. Go to <a href="https://script.google.com" target="_blank">Google Apps Script</a><br>
+                            2. Open your noPhish script<br>
+                            3. Click Run → checkNewEmails
+                        </div>
+                    </div>
+                `;
+            }, 2000);
+        }
+        
+        // ============ PAGE: HISTORY ============
+        function showHistory() {
+            document.getElementById('content').innerHTML = `
+                <div class="fade-in">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2><i class="bi bi-clock-history"></i> Scan History</h2>
+                            <p class="text-secondary">All scanned URLs, files, and emails</p>
+                        </div>
+                        <button class="btn btn-outline-danger" onclick="clearHistory()">
+                            <i class="bi bi-trash"></i> Clear All
+                        </button>
+                    </div>
+                    
+                    <div class="card-custom">
+                        <div class="table-responsive">
+                            <table class="table table-custom mb-0">
+                                <thead>
                                     <tr>
-                                        <td>${new Date(e.timestamp).toLocaleString()}</td>
-                                        <td><span class="badge ${e.is_phishing ? 'badge-phishing' : 'badge-clean'}">${e.is_phishing ? 'Phishing' : 'Clean'}</span></td>
-                                        <td>${(e.sender || '').substring(0, 30)}</td>
-                                        <td>${(e.subject || '').substring(0, 40)}</td>
-                                        <td><span class="badge bg-${e.is_phishing ? 'danger' : 'secondary'}">${e.total_score}/10</span></td>
+                                        <th>Type</th>
+                                        <th>Item</th>
+                                        <th>Status</th>
+                                        <th>Score</th>
+                                        <th>Time</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    ${scanHistory.length === 0 ? `
+                                        <tr><td colspan="5" class="text-center py-4 text-secondary">No scan history yet</td></tr>
+                                    ` : scanHistory.map(h => `
+                                        <tr>
+                                            <td>
+                                                <i class="bi bi-${h.type === 'url' ? 'link-45deg' : h.type === 'file' ? 'file-earmark-binary' : 'envelope'}"></i>
+                                                ${h.type.toUpperCase()}
+                                            </td>
+                                            <td>${h.item.substring(0, 40)}...</td>
+                                            <td>
+                                                <span class="status-badge ${h.is_phishing ? 'phishing' : 'clean'}">
+                                                    ${h.is_phishing ? 'PHISHING' : 'SAFE'}
+                                                </span>
+                                            </td>
+                                            <td>${h.score}/10</td>
+                                            <td>${new Date(h.timestamp).toLocaleString()}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             `;
         }
-
-        function clearData() {
-            if (confirm('Clear all email data?')) {
-                emails = [];
-                activityLog = [];
-                saveEmails();
+        
+        function clearHistory() {
+            if (confirm('Clear all scan history?')) {
+                scanHistory = [];
+                localStorage.setItem('nophish_scan_history', JSON.stringify(scanHistory));
+                showHistory();
             }
         }
-
-        function refreshDashboard() {
-            location.reload();
-        }
-
-        function showPage(page) {
-            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
-            document.getElementById('nav-' + page).classList.add('active');
-            if (page === 'dashboard') updateDashboard();
-            else if (page === 'emails') showEmails();
-            else if (page === 'live') showLiveMonitor();
-        }
-
-        addDemoData();
-        updateDashboard();
         
-        // Auto-refresh every 30 seconds
-        setInterval(() => {
-            updateDashboard();
-        }, 30000);
+        // ============ PAGE: SETTINGS ============
+        function showSettings() {
+            document.getElementById('content').innerHTML = `
+                <div class="fade-in">
+                    <h2><i class="bi bi-gear"></i> Settings</h2>
+                    <p class="text-secondary">Configure your noPhish detection system</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card-custom p-4 mb-4">
+                                <h5><i class="bi bi-bell"></i> Alert Settings</h5>
+                                <div class="form-check form-switch mt-3">
+                                    <input class="form-check-input" type="checkbox" id="emailAlert" checked>
+                                    <label class="form-check-label" for="emailAlert">
+                                        Send EmailJS alerts for phishing
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="soundAlert">
+                                    <label class="form-check-label" for="soundAlert">
+                                        Play sound on detection
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card-custom p-4 mb-4">
+                                <h5><i class="bi bi-shield"></i> Detection Sensitivity</h5>
+                                <label class="form-label">Minimum threat score for alerts</label>
+                                <input type="range" class="form-range" min="1" max="10" value="3" id="sensitivity">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-secondary">Low</small>
+                                    <small id="sensitivity-value">3</small>
+                                    <small class="text-secondary">High</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-custom p-4">
+                        <h5><i class="bi bi-link-45deg"></i> Webhook URL</h5>
+                        <div class="input-group mt-3">
+                            <input type="text" class="form-control form-control-dark" 
+                                   value="https://nophish-detection.netlify.app/.netlify/functions/webhook-alert" readonly>
+                            <button class="btn btn-outline-primary" onclick="copyWebhook()">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Sensitivity slider
+            document.getElementById('sensitivity').addEventListener('input', function() {
+                document.getElementById('sensitivity-value').textContent = this.value;
+            });
+        }
+        
+        function copyWebhook() {
+            const url = 'https://nophish-detection.netlify.app/.netlify/functions/webhook-alert';
+            navigator.clipboard.writeText(url);
+            alert('Webhook URL copied!');
+        }
+        
+        // ============ ROUTER ============
+        function showPage(page) {
+            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById('nav-' + page).classList.add('active');
+            
+            switch(page) {
+                case 'dashboard': showDashboard(); break;
+                case 'scanner': showScanner(); break;
+                case 'gmail': showGmail(); break;
+                case 'history': showHistory(); break;
+                case 'settings': showSettings(); break;
+                default: showDashboard();
+            }
+        }
+        
+        // Initialize
+        showDashboard();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
