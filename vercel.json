@@ -1,10 +1,5 @@
 {
   "buildCommand": "",
   "installCommand": "npm install",
-  "outputDirectory": "dashboard-static",
-  "functions": {
-    "api/functions/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "outputDirectory": "dashboard-static"
 }
