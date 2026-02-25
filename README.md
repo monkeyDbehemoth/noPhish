@@ -1,39 +1,14 @@
 # noPhish 🔐
 
-A 3-layer phishing email detection system with Gmail integration and real-time dashboard.
+A 3-layer phishing email detection system with Gmail IMAP integration, URL/File scanner, and real-time dashboard.
 
 ## Features
 
 - 🔍 **3-Layer Detection**: URL Analysis, HTML Analysis, ML Pattern Matching
-- 📧 **Gmail Integration**: Automatic email monitoring via Google Apps Script
-- 📊 **Real-time Dashboard**: Live monitoring with dark theme
+- 📧 **Gmail IMAP Integration**: Direct connection to Gmail - no Google Apps Script needed
+- 🌐 **URL/File Scanner**: Scan any URL or file like VirusTotal
+- 📊 **Real-time Dashboard**: Professional dark-themed dashboard
 - 📱 **Email Alerts**: Instant notifications via EmailJS when phishing detected
-- 🚀 **Netlify Deployment**: Free hosting for dashboard and webhook
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          System Flow                                │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  [Emails to shahshubhangam@gmail.com]                              │
-│           │                                                         │
-│           ▼                                                         │
-│  [Google Apps Script] ◄─── Runs every 5 minutes                   │
-│           │                                                         │
-│           ▼                                                         │
-│  [Netlify Webhook] ◄─── Analyzes for phishing                      │
-│           │                                                         │
-│           ├──────────────────┬──────────────────┐                  │
-│           ▼                  ▼                  ▼                  │
-│    [Dashboard]      [EmailJS Alert]    [Local Detection]           │
-│   (Web UI)          (to Gmail)          (SMTP Listener)            │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -46,148 +21,108 @@ A 3-layer phishing email detection system with Gmail integration and real-time d
 
 ---
 
-## Setup Guide
+## Installation
 
-### Part 1: Gmail Integration (Automatic Email Monitoring)
+```bash
+# Clone the repository
+git clone https://github.com/monkeyDbehemoth/noPhish.git
+cd noPhish
 
-This allows your Gmail to automatically forward emails for phishing analysis.
-
-#### Step 1: Create Google Apps Script
-
-1. Go to: https://script.google.com
-2. Click **+ New Project**
-3. Delete any existing code
-4. Paste this code:
-
-```javascript
-// noPhish Gmail Forwarder
-const WEBHOOK_URL = 'https://nophish-detection.netlify.app/.netlify/functions/webhook-alert';
-
-function setupGmailForwarder() {
-  const labelName = 'noPhish-Analyzed';
-  let label = GmailApp.getUserLabelByName(labelName);
-  if (!label) {
-    label = GmailApp.createLabel(labelName);
-  }
-  
-  const triggers = ScriptApp.getProjectTriggers();
-  const hasTrigger = triggers.some(t => t.getHandlerFunction() === 'checkNewEmails');
-  
-  if (!hasTrigger) {
-    ScriptApp.newTrigger('checkNewEmails')
-      .timeBased()
-      .everyMinutes(5)
-      .create();
-  }
-  
-  Logger.log('noPhish set up!');
-}
-
-function checkNewEmails() {
-  const labelName = 'noPhish-Analyzed';
-  let label = GmailApp.getUserLabelByName(labelName);
-  if (!label) {
-    label = GmailApp.createLabel(labelName);
-  }
-  
-  const unreadCount = GmailApp.getInboxUnreadCount();
-  Logger.log('Unread count: ' + unreadCount);
-  
-  const threads = GmailApp.getInboxThreads(0, 10);
-  Logger.log('Threads fetched: ' + threads.length);
-  
-  for (let i = 0; i < threads.length; i++) {
-    const thread = threads[i];
-    
-    if (thread.hasLabel(label)) continue;
-    
-    try {
-      const messages = thread.getMessages();
-      const email = messages[0];
-      
-      const emailData = {
-        sender: email.getFrom(),
-        subject: email.getSubject(),
-        body: email.getPlainBody().substring(0, 2000),
-        timestamp: email.getDate().toISOString()
-      };
-      
-      Logger.log('Processing: ' + email.getSubject());
-      
-      const response = UrlFetchApp.fetch(WEBHOOK_URL, {
-        method: 'post',
-        headers: { 'Content-Type': 'application/json' },
-        payload: JSON.stringify(emailData)
-      });
-      
-      Logger.log('Response: ' + response.getResponseCode());
-      
-      thread.addLabel(label);
-      thread.markRead();
-      
-    } catch (error) {
-      Logger.log('Error: ' + error.message);
-    }
-  }
-}
-```
-
-#### Step 2: Save and Run
-
-1. Click **Save** (Ctrl+S)
-2. Click the **▶️ Run** button
-3. Select `setupGmailForwarder` from dropdown
-4. Click **Run**
-5. Click **Review Permissions** → choose your account → **Allow**
-
-#### Step 3: Deploy as Web App (Required for automation)
-
-1. Click **Deploy** (top right) → **New deployment**
-2. Click the **Select type** gear icon → choose **Web app**
-3. Fill in:
-   - **Description:** `noPhish Forwarder`
-   - **Execute as:** **Me**
-   - **Who has access:** **Only myself**
-4. Click **Deploy**
-5. Click **Authorize access** → **Allow**
-
-✅ **Done!** The script will now automatically check your Gmail every 5 minutes.
-
----
-
-### Part 2: EmailJS Alerts
-
-When phishing is detected, you'll receive an email alert.
-
-#### Already Configured:
-- Service ID: `service_80fn7ge`
-- Template ID: `template_k3z097y`
-- Your Email: `shahshubhangam@gmail.com`
-
-#### To Enable API Access (if not already):
-
-1. Go to: https://dashboard.emailjs.com/admin/settings
-2. Look for **"API"** or **"Allow server-side API calls"**
-3. Enable it
-
----
-
-### Part 3: Local SMTP Server (Optional)
-
-Run the detection engine locally on your machine.
-
-``` dependencies
+# Install dependencies
 pip install -r requirements.txt
-
-# Start the SMTP server
-pythonbash
-# Install main.py
-
-# Test with a phishing email (in another terminal)
-python test_html_email.py
 ```
 
-The SMTP server listens on `127.0.0.1:2525`.
+---
+
+## Quick Start
+
+### Option 1: IMAP Mode (Recommended - No Setup Needed!)
+
+**IMAP connects directly to your Gmail and automatically scans all incoming emails!**
+
+#### Step 1: Enable IMAP in Gmail
+
+1. Go to Gmail → Settings → See all settings
+2. Go to **Forwarding and POP/IMAP** tab
+3. Enable **IMAP access**
+4. Click **Save Changes**
+
+#### Step 2: Generate App Password
+
+1. Go to: https://myaccount.google.com/apppasswords
+2. Sign in to your Google account
+3. In "Select app", choose **Mail**
+4. In "Select device", choose **Other (Custom name)**
+5. Enter: `noPhish`
+6. Click **Generate**
+7. **Copy the 16-character password** (format: `xxxx xxxx xxxx xxxx`)
+
+#### Step 3: Run IMAP Fetcher
+
+```bash
+# Set environment variables
+export GMAIL_EMAIL=your-email@gmail.com
+export GMAIL_APP_PASSWORD="xxxx xxxx xxxx xxxx"
+
+# Run in IMAP mode
+python main.py --mode imap
+```
+
+Or create a `.env` file:
+```
+GMAIL_EMAIL=shahshubhangam@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+```
+
+Then run:
+```bash
+python main.py --mode imap
+```
+
+---
+
+### Option 2: SMTP Listener Mode
+
+Listen for emails sent to a specific port:
+
+```bash
+python main.py --mode smtp
+```
+
+The server listens on `127.0.0.1:2525`
+
+---
+
+### Option 3: Both Modes
+
+Run both IMAP and SMTP simultaneously:
+
+```bash
+python main.py --mode both
+```
+
+---
+
+## Gmail App Password Setup (Required for IMAP)
+
+### How to Generate App Password:
+
+1. **Go to Google Account Security:**
+   https://myaccount.google.com/apppasswords
+
+2. **Sign in** with your Google account
+
+3. **Create App Password:**
+   - Name: `noPhish`
+   - Select app: **Mail**
+   - Select device: **Other (Custom name)**
+
+4. **Copy the password** (16 characters with spaces)
+
+### Important Notes:
+- App passwords are different from your regular password
+- You need 2-Step Verification enabled on your Google account
+- If you don't see "App passwords", go to: https://myaccount.google.com/security → 2-Step Verification
 
 ---
 
@@ -199,50 +134,69 @@ The SMTP server listens on `127.0.0.1:2525`.
 ### Features
 
 1. **Dashboard** - Overview with stats and recent activity
-2. **All Emails** - View all analyzed emails
-3. **Live Monitor** - Real-time scanning status
-
-### Viewing Results
-
-- The dashboard auto-refreshes every 30 seconds
-- Click **Refresh** button to update manually
-- Emails marked as "Phishing" with score ≥ 3 will trigger an EmailJS alert
+2. **Scanner** - URL/File scanner (VirusTotal-like)
+3. **History** - All scanned emails, URLs, files
 
 ---
 
-## Testing the System
+## How It Works
 
-### Test 1: Direct Webhook Test
+### IMAP Mode (Recommended)
 
-```bash
-curl -X POST https://nophish-detection.netlify.app/.netlify/functions/webhook-alert \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sender":"attacker@fake-bank.com",
-    "subject":"URGENT: Verify your account",
-    "body":"Click here to verify: http://fake-link.com password required"
-  }'
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    IMAP EMAIL FLOW                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  [Gmail] ◄─── IMAP Connection (every 60 seconds)        │
+│     │                                                      │
+│     ▼                                                      │
+│  [New Emails] ──► 3-Layer Detection Engine                │
+│     │                                                      │
+│     ├──────────────┬──────────────┐                       │
+│     ▼              ▼              ▼                       │
+│  [Dashboard]   [EmailJS]    [Console Alert]               │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Test 2: Send Email to Yourself
+### Detection Layers
 
-1. Send an email to `shahshubhangam@gmail.com` with subject: "URGENT: Verify your account now!"
-2. Wait 5 minutes for the script to run
-3. Or manually run the script in Google Apps Script
-4. Check your dashboard and Gmail for alerts
+1. **URL Analysis**: Checks for suspicious URLs, blacklisted domains, URL shorteners, IP addresses
+2. **HTML Analysis**: Detects login forms, password fields, script tags, iframes
+3. **ML Pattern Matching**: Keyword-based phishing detection
+
+---
+
+## Testing
+
+### Test URL Scanner
+
+```bash
+curl -X POST https://nophish-detection.netlify.app/.netlify/functions/url-scanner \
+  -H "Content-Type: application/json" \
+  -d '{"url":"http://suspicious-link.com/login"}'
+```
+
+### Test File Scanner
+
+```bash
+curl -X POST https://nophish-detection.netlify.app/.netlify/functions/file-scanner \
+  -H "Content-Type: application/json" \
+  -d '{"fileName":"test.html","content":"<script>alert(1)</script>"}'
+```
 
 ---
 
 ## Configuration
 
-### Environment Variables (Netlify)
+### Environment Variables
 
-| Variable | Value |
-|----------|-------|
-| EMAILJS_SERVICE_ID | service_80fn7ge |
-| EMAILJS_TEMPLATE_ID | template_k3z097y |
-| EMAILJS_PUBLIC_KEY | iSq75hb6y30zhVEHR |
-| EMAILJS_PRIVATE_KEY | (your private key) |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| GMAIL_EMAIL | Your Gmail address | shahshubhangam@gmail.com |
+| GMAIL_APP_PASSWORD | Gmail App Password | xxxx xxxx xxxx xxxx |
+| POLL_INTERVAL | IMAP check interval (seconds) | 60 |
 
 ### Detection Thresholds
 
@@ -251,46 +205,18 @@ curl -X POST https://nophish-detection.netlify.app/.netlify/functions/webhook-al
 | 0-2 | Clean (no alert) |
 | 3+ | Phishing (EmailJS alert sent) |
 
-### Phishing Keywords Detected
-
-- urgent, verify, login, password, account suspended
-- click here, update, confirm, bank, paypal
-- unusual activity, verify identity
-
----
-
-## Troubleshooting
-
-### Script Not Running Automatically?
-
-1. Make sure you **deployed as Web App** (Part 1, Step 3)
-2. Check **Executions** in Google Apps Script
-3. Manually run `checkNewEmails` to test
-
-### Not Receiving Email Alerts?
-
-1. Check EmailJS settings - enable "Allow server-side API calls"
-2. Check your Gmail spam folder
-3. Test with direct webhook curl command
-
-### Dashboard Not Updating?
-
-- Dashboard auto-refreshes every 30 seconds
-- Click the **Refresh** button
-- Check your Gmail script is running
-
 ---
 
 ## Files
 
 ```
 noPhish/
-├── main.py                    # SMTP server entry point
-├── check_detection.py         # Test detection engine
-├── test_html_email.py         # Send test emails
+├── main.py                    # Main entry point
+├── imap_fetcher.py           # IMAP email fetcher
+├── check_detection.py        # Test detection engine
 ├── requirements.txt           # Python dependencies
 │
-├── detection_engine/          # Core detection logic
+├── detection_engine/         # Core detection logic
 │   ├── detector.py           # Main detector
 │   ├── url_analysis.py       # Layer 1: URL analysis
 │   ├── html_analysis.py      # Layer 2: HTML analysis
@@ -309,22 +235,49 @@ noPhish/
 │
 ├── netlify/                 # Netlify functions
 │   └── functions/
-│       └── webhook-alert.js # Email analysis webhook
+│       ├── webhook-alert.js
+│       ├── url-scanner.js
+│       └── file-scanner.js
 │
-└── GoogleAppsScript/        # Gmail integration
+└── GoogleAppsScript/        # Old Gmail integration (not needed anymore!)
     └── gmail_forwarder.js
 ```
+
+---
+
+## Troubleshooting
+
+### IMAP Connection Issues
+
+**Error: "Too many simultaneous connections"**
+- Solution: Wait a few minutes, Gmail limits to 15 concurrent connections
+
+**Error: "Invalid credentials"**
+- Solution: Regenerate your App Password at https://myaccount.google.com/apppasswords
+
+**Error: "Authentication failed"**
+- Solution: Make sure you enabled 2-Step Verification first
+
+### Not Receiving Alerts?
+
+1. Check EmailJS settings - enable "Allow server-side API calls"
+2. Check your Gmail spam folder
+3. Test with direct webhook curl command
+
+---
+
+## Why IMAP is Better?
+
+| Feature | IMAP | Google Apps Script |
+|---------|------|-------------------|
+| Real-time | ✓ Every 60s | ✓ Every 5min |
+| Setup | Easy | Medium |
+| Reliability | High | Medium |
+| No Google Script | ✓ | ✗ |
+| Works 24/7 | ✓ | Needs deployment |
 
 ---
 
 ## License
 
 MIT
-
----
-
-## Credits
-
-- Built with Flask, BeautifulSoup4, scikit-learn
-- Dashboard hosted on Netlify
-- Email alerts via EmailJS
