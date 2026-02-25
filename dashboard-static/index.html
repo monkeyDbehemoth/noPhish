@@ -313,10 +313,11 @@
         let scanHistory = JSON.parse(localStorage.getItem('nophish_scan_history') || '[]');
         let stats = JSON.parse(localStorage.getItem('nophish_stats') || '{"total":0,"phishing":0,"clean":0}');
         
-        // API endpoints
-        const WEBHOOK_URL = 'https://nophish-detection.netlify.app/.netlify/functions/webhook-alert';
-        const URL_SCAN_API = 'https://nophish-detection.netlify.app/.netlify/functions/url-scanner';
-        const FILE_SCAN_API = 'https://nophish-detection.netlify.app/.netlify/functions/file-scanner';
+        // API endpoints - will be auto-detected based on current domain
+        const BASE_URL = window.location.origin;
+        const WEBHOOK_URL = BASE_URL + '/api/webhook-alert';
+        const URL_SCAN_API = BASE_URL + '/api/url-scanner';
+        const FILE_SCAN_API = BASE_URL + '/api/file-scanner';
         
         // ============ PAGE: DASHBOARD ============
         function showDashboard() {
@@ -900,7 +901,7 @@
                         <h5><i class="bi bi-link-45deg"></i> Webhook URL</h5>
                         <div class="input-group mt-3">
                             <input type="text" class="form-control form-control-dark" 
-                                   value="https://nophish-detection.netlify.app/.netlify/functions/webhook-alert" readonly>
+                                    value="${window.location.origin}/api/webhook-alert" readonly>
                             <button class="btn btn-outline-primary" onclick="copyWebhook()">
                                 <i class="bi bi-clipboard"></i> Copy
                             </button>
@@ -916,7 +917,7 @@
         }
         
         function copyWebhook() {
-            const url = 'https://nophish-detection.netlify.app/.netlify/functions/webhook-alert';
+            const url = window.location.origin + '/api/webhook-alert';
             navigator.clipboard.writeText(url);
             alert('Webhook URL copied!');
         }
